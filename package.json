@@ -1,0 +1,8 @@
+{
+  "name": "llywodraeth-adar",
+  "version": "1.0.0",
+  "main": "index.js",
+  "repository": "git@github:runjak/llywodraeth-adar",
+  "author": "Jakob Runge <github@runjak.codes>",
+  "license": "MIT"
+}
