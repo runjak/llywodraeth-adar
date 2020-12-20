@@ -1,8 +1,6 @@
 import { spawn } from 'child_process';
-
-/*
-  Heavily inspired by https://github.com/jibon57/bbb-recorder/blob/master/ffmpegServer.js
-*/
+import { Server as WebSocketServer } from 'ws';
+import { createServer as createHttpServer, IncomingMessage } from 'http';
 
 const command = 'ffmpeg';
 const args = [
@@ -41,21 +39,54 @@ const args = [
   process.env['RTMP_URL'],
 ];
 
-type StartParameters = {
-  onStdInErr: (error: Error) => unknown,
-  onStdErrErr: (data: unknown) => unknown,
-  onClose: (code: number, signal: NodeJS.Signals) => unknown,
+const isAuthenticated = (req: IncomingMessage): boolean => {
+  const authMatch = req.url.match(/^\/auth\/(.*)$/);
+  const authToken = authMatch[1] ?? '';
+
+  return process.env['WS_AUTH_TOKEN'] === authToken;
 };
 
-export const start = (params: StartParameters) => {
-  const ffmpeg = spawn(command, args);
+export const startFfmpegServer = () => {
+  const httpPort = process.env['FFMPEG_SERVER_PORT'];
+  const httpServer = createHttpServer().listen(httpPort, () => {
+    console.log(`Listening on ${httpPort}`);
+  });
 
-  ffmpeg.on('close', params.onClose);
-  ffmpeg.stdin.on('error', params.onStdInErr);
-  ffmpeg.stderr.on('data', params.onStdErrErr);
+  const websocketServer = new WebSocketServer({ server: httpServer });
+  websocketServer.on('connection', (ws: WebSocket, req: IncomingMessage) => {
+    console.log('new websocket connection');
 
-  return {
-    write: (data) => ffmpeg.stdin.write(data),
-    kill: () => ffmpeg.kill('SIGINT'),
-  };
+    if (isAuthenticated(req)) {
+      console.log('authentication passed');
+    } else {
+      console.log('authentication failed');
+      ws.close(1008, 'authentication failed');
+    }
+
+    const ffmpeg = spawn(command, args);
+
+    ffmpeg.on('close', (code, signal) => {
+      console.log('ffmpeg child process closed.', { code, signal });
+      ws.send('ffmpegClosed');
+      ws.close();
+    });
+
+    ffmpeg.stdin.on('error', (e: Error) => {
+      console.log('ffmpeg STDIN Error', e);
+    });
+
+    ffmpeg.stderr.on('data', (data) => {
+      console.log('ffmpeg STDERR:', String(data));
+    });
+
+    ws.onmessage = (msg) => {
+      console.log('DATA', msg);
+      ffmpeg.stdin.write(msg);
+    };
+
+    ws.onclose = (event) => {
+      console.log('ws closed');
+      ffmpeg.kill('SIGINT');
+    };
+  });
 };
