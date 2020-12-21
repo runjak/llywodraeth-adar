@@ -89,4 +89,11 @@ export const startFfmpegServer = () => {
       ffmpeg.kill('SIGINT');
     };
   });
+
+  return async () => {
+    await Promise.all([
+      new Promise(resolve => httpServer.close(resolve)),
+      new Promise(resolve => websocketServer.close(resolve)),
+    ]);
+  };
 };

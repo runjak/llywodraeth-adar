@@ -73,11 +73,12 @@ export const main = async (url: string, duration: number) => {
 
     await sleep(duration);
 
-    /*
     await page.evaluate((serverAddress) => {
       console.log("FFMPEG_SERVER");
       window.postMessage({ type: 'FFMPEG_SERVER', ffmpegServer: serverAddress }, '*');
-    }, getFfmpegHost()); // */
+    }, getFfmpegHost());
+
+    await sleep(duration);
 
   } catch (error) {
     console.error(error);
