@@ -10,7 +10,7 @@ const url = process.env['START_URL'];
   console.log('starting ffmpegServer');
   const stopFfmpegServer = startFfmpegServer();
   console.log('testing chromeMain.');
-  await chromeMain(url, 5 * minute);
+  await chromeMain(url, minute);
   console.log('stopping ffmpegServer');
   await stopFfmpegServer();
   console.log('done.')

@@ -74,26 +74,10 @@ export const main = async (url: string, duration: number) => {
     await sleep(1000);
 
     await page.evaluate((serverAddress) => {
-      const msg = { type: 'FFMPEG_SERVER', ffmpegServer: serverAddress };
+      const msg = { type: 'FFMPEG_START', data: { ffmpegServer: serverAddress, url: window.location.origin } };
       console.log('chrome/index.ts', JSON.stringify(msg));
       window.postMessage(msg, '*');
     }, getFfmpegHost());
-
-    await sleep(1000);
-
-    await page.evaluate(() => {
-      const msg = { type: 'REC_CLIENT_PLAY', data: { url: window.location.origin } };
-      console.log('chrome/index.ts', JSON.stringify(msg));
-      window.postMessage(msg, '*');
-    });
-
-    await sleep(1000);
-
-    await page.evaluate(() => {
-      const msg = { type: 'REC_START', data: {} };
-      console.log('chrome/index.ts', JSON.stringify(msg));
-      window.postMessage(msg, '*');
-    });
 
     await sleep(duration);
 
