@@ -1,0 +1,90 @@
+import { launch as launchPuppeteer } from 'puppeteer';
+import Xvfb from 'xvfb';
+import { platform } from 'os';
+import { Browser } from 'puppeteer/lib/cjs/puppeteer/common/Browser';
+import { Page } from 'puppeteer/lib/cjs/puppeteer/common/Page';
+
+const getFfmpegHost = () => {
+  const ffmpegServer = process.env['FFMPEG_SERVER'];
+  const ffmpegServerPort = process.env['FFMPEG_SERVER_PORT'];
+  const wsAuthToken = process.env['WS_AUTH_TOKEN'];
+  return `${ffmpegServer}:${ffmpegServerPort}/auth/${wsAuthToken}`;
+};
+
+const getChromePath = () => {
+  switch (platform()) {
+    case 'linux':
+      return "/usr/bin/google-chrome";
+    case 'darwin':
+      return "/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome";
+    default:
+      throw new Error(`Don't know where chrome is located on platform ${platform()}`);
+  }
+};
+
+const sleep = (duration: number) => new Promise((resolve) => setTimeout(resolve, duration));
+
+const dimensions = { width: 1280, height: 720 } as const;
+
+/*
+const xvfb = new Xvfb({
+  silent: true,
+  xvfb_args: ["-screen", "0", "1280x800x24", "-ac", "-nolisten", "tcp", "-dpi", "96", "+extension", "RANDR"]
+}); // */
+
+const options = {
+  executablePath: getChromePath(),
+  headless: false,
+  args: [
+    '--enable-usermedia-screen-capturing',
+    '--allow-http-screen-capture',
+    '--auto-select-desktop-capture-source=llywodraeth-adar',
+    '--load-extension=' + __dirname,
+    '--disable-extensions-except=' + __dirname,
+    '--disable-infobars',
+    '--no-sandbox',
+    '--shm-size=1gb',
+    '--disable-dev-shm-usage',
+    '--start-fullscreen',
+    '--app=https://www.google.com/',
+    `--window-size=${dimensions.width},${dimensions.height}`
+  ],
+};
+
+export const main = async (url: string, duration: number) => {
+  let browser: Browser | null = null;
+  let page: Page | null = null;
+
+  try {
+    // if (platform() === "linux") { xvfb.startSync(); }
+
+    browser = await launchPuppeteer(options);
+    const pages = await browser.pages();
+    page = pages[0];
+
+    page.on('console', msg => {
+      console.log('PAGE LOG:', msg.text());
+    });
+
+    // @ts-ignore - seems to relate to window-size, according to https://stackoverflow.com/questions/52553311/how-to-set-max-viewport-in-puppeteer
+    await page._client.send('Emulation.clearDeviceMetricsOverride');
+    await page.goto(url, { waitUntil: 'networkidle2' });
+    await page.setBypassCSP(true);
+
+    await sleep(duration);
+
+    /*
+    await page.evaluate((serverAddress) => {
+      console.log("FFMPEG_SERVER");
+      window.postMessage({ type: 'FFMPEG_SERVER', ffmpegServer: serverAddress }, '*');
+    }, getFfmpegHost()); // */
+
+  } catch (error) {
+    console.error(error);
+  } finally {
+    page?.close && await page.close();
+    browser?.close && await browser.close();
+
+    // if (platform() === "linux") { xvfb.stopSync(); }
+  }
+};
