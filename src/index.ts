@@ -16,3 +16,10 @@ const url = process.env['START_URL'];
   console.log('done.')
   process.exit(0);
 })();
+
+/*
+  process.on('SIGINT', async () => {
+    await stopFfmpegServer();
+    process.exit(0);
+  });
+*/
