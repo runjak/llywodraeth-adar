@@ -8,9 +8,8 @@ let ffmpegServer;
 let doDownload = true;
 
 chrome.runtime.onConnect.addListener(port => {
-
   port.onMessage.addListener(msg => {
-    console.log(msg);
+    console.log('background.js', JSON.stringify(msg));
     switch (msg.type) {
 
       case 'SET_EXPORT_PATH':
@@ -39,9 +38,13 @@ chrome.runtime.onConnect.addListener(port => {
         if (recorder) {
           return;
         }
+
+        console.log('1');
+
         const tab = port.sender.tab;
         tab.url = msg.data.url;
         chrome.desktopCapture.chooseDesktopMedia(['tab', 'audio'], streamId => {
+          console.log('2');
           // Get the stream
           navigator.webkitGetUserMedia({
             audio: {
@@ -61,6 +64,7 @@ chrome.runtime.onConnect.addListener(port => {
               }
             }
           }, stream => {
+            console.log('3');
             var chunks = [];
             recorder = new MediaRecorder(stream, {
               videoBitsPerSecond: 2500000,
@@ -68,6 +72,7 @@ chrome.runtime.onConnect.addListener(port => {
               mimeType: 'video/webm;codecs=h264'
             });
             recorder.ondataavailable = function (event) {
+              console.log('recorder.ondataavailable')
               if (event.data.size > 0) {
                 chunks.push(event.data);
                 if (liveSteam) {
@@ -91,12 +96,6 @@ chrome.runtime.onConnect.addListener(port => {
               });
 
               var url = URL.createObjectURL(superBuffer);
-              // var a = document.createElement('a');
-              // document.body.appendChild(a);
-              // a.style = 'display: none';
-              // a.href = url;
-              // a.download = 'test.webm';
-              // a.click();
 
               chrome.downloads.download({
                 url: url,
@@ -134,7 +133,6 @@ function startWebsock() {
     console.log(e.data);
 
     if (e.data === "ffmpegClosed") {
-
       doDownload = false;
       recorder.stop();
 

@@ -6,8 +6,10 @@ window.onload = () => {
   const port = chrome.runtime.connect(chrome.runtime.id);
   port.onMessage.addListener(msg => window.postMessage(msg, '*'));
   window.addEventListener('message', event => {
+    console.log('content_script.js', JSON.stringify(event.data));
     // Relay client messages
-    if (event.source === window && event.data.type) {
+    // if (event.source === window && event.data.type) {
+    if (Boolean(event.data.type)) {
       port.postMessage(event.data);
     }
     if (event.data.type === 'PLAYBACK_COMPLETE') {
@@ -19,5 +21,5 @@ window.onload = () => {
   });
 
   document.title = 'llywodraeth-adar';
-  window.postMessage({ type: 'REC_CLIENT_PLAY', data: { url: window.location.origin } }, '*');
+  // window.postMessage({ type: 'REC_CLIENT_PLAY', data: { url: window.location.origin } }, '*');
 }

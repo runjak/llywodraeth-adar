@@ -1,5 +1,5 @@
 import { launch as launchPuppeteer } from 'puppeteer';
-import Xvfb from 'xvfb';
+// import Xvfb from 'xvfb';
 import { platform } from 'os';
 import { Browser } from 'puppeteer/lib/cjs/puppeteer/common/Browser';
 import { Page } from 'puppeteer/lib/cjs/puppeteer/common/Page';
@@ -63,7 +63,7 @@ export const main = async (url: string, duration: number) => {
     page = pages[0];
 
     page.on('console', msg => {
-      console.log('PAGE LOG:', msg.text());
+      console.log('page log:', msg.text());
     });
 
     // @ts-ignore - seems to relate to window-size, according to https://stackoverflow.com/questions/52553311/how-to-set-max-viewport-in-puppeteer
@@ -71,12 +71,29 @@ export const main = async (url: string, duration: number) => {
     await page.goto(url, { waitUntil: 'networkidle2' });
     await page.setBypassCSP(true);
 
-    await sleep(duration);
+    await sleep(1000);
 
     await page.evaluate((serverAddress) => {
-      console.log("FFMPEG_SERVER");
-      window.postMessage({ type: 'FFMPEG_SERVER', ffmpegServer: serverAddress }, '*');
+      const msg = { type: 'FFMPEG_SERVER', ffmpegServer: serverAddress };
+      console.log('chrome/index.ts', JSON.stringify(msg));
+      window.postMessage(msg, '*');
     }, getFfmpegHost());
+
+    await sleep(1000);
+
+    await page.evaluate(() => {
+      const msg = { type: 'REC_CLIENT_PLAY', data: { url: window.location.origin } };
+      console.log('chrome/index.ts', JSON.stringify(msg));
+      window.postMessage(msg, '*');
+    });
+
+    await sleep(1000);
+
+    await page.evaluate(() => {
+      const msg = { type: 'REC_START', data: {} };
+      console.log('chrome/index.ts', JSON.stringify(msg));
+      window.postMessage(msg, '*');
+    });
 
     await sleep(duration);
 

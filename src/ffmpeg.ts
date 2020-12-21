@@ -80,8 +80,7 @@ export const startFfmpegServer = () => {
     });
 
     ws.onmessage = (msg) => {
-      console.log('DATA', msg);
-      ffmpeg.stdin.write(msg);
+      ffmpeg.stdin.write(msg.data);
     };
 
     ws.onclose = (event) => {
